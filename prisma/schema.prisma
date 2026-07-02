@@ -91,3 +91,16 @@ model Warrant {
   status      String   @default("AKTIV") // AKTIV, ERLEDIGT
   createdAt   DateTime @default(now())
 }
+
+model InternalDocument {
+  id          String    @id @default(uuid())
+  type        String    // DIENSTANWEISUNG, DIENSTORDNUNG, ANTRAG, BESCHWERDE
+  title       String
+  content     String
+  creatorName String
+  creatorRole String
+  signedBy    String?   // Amtliche Zeichnung/Genehmigung
+  signedAt    DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

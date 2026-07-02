@@ -3,13 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import type { Citizen, Case, Warrant, Law, Suspect, Evidence, Document, CaseNote, SystemStats } from '@/types';
 import { INITIAL_LAWS } from '@/data/laws';
+import Logo from '@/components/Logo';
+import type { InternalDocument } from '@/lib/db';
 
 export default function Home() {
   // Appearance
   const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
 
   // Navigation & Core States
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'cases' | 'citizens' | 'laws'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'cases' | 'citizens' | 'laws' | 'office'>('dashboard');
   const [currentRole, setCurrentRole] = useState<'police' | 'justice' | 'judge' | 'admin'>('police');
   const [currentOfficerName, setCurrentOfficerName] = useState<string>('Officer Davis');
   
@@ -17,16 +19,18 @@ export default function Home() {
   const [citizens, setCitizens] = useState<Citizen[]>([]);
   const [cases, setCases] = useState<Case[]>([]);
   const [warrants, setWarrants] = useState<Warrant[]>([]);
+  const [internalDocs, setInternalDocs] = useState<InternalDocument[]>([]);
   const [laws] = useState<Law[]>(INITIAL_LAWS);
   
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [lawCategoryFilter, setLawCategoryFilter] = useState<string>('ALL');
+  const [officeFilter, setOfficeFilter] = useState<string>('ALL');
 
   // Selected Detail States
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   const [selectedCitizenId, setSelectedCitizenId] = useState<string | null>(null);
-  const [activeDocToPrint, setActiveDocToPrint] = useState<Document | null>(null);
+  const [activeDocToPrint, setActiveDocToPrint] = useState<{ title: string; content: string; type: string; signedBy?: string | null; signedAt?: string | null; caseNumber?: string } | null>(null);
 
   // Modal States
   const [showCaseModal, setShowCaseModal] = useState<boolean>(false);
@@ -34,6 +38,7 @@ export default function Home() {
   const [showWarrantModal, setShowWarrantModal] = useState<boolean>(false);
   const [showEvidenceModal, setShowEvidenceModal] = useState<boolean>(false);
   const [showDocModal, setShowDocModal] = useState<boolean>(false);
+  const [showOfficeModal, setShowOfficeModal] = useState<boolean>(false);
   
   // New Case Form States
   const [newCaseTitle, setNewCaseTitle] = useState('');
@@ -60,10 +65,15 @@ export default function Home() {
   const [newEvidenceDesc, setNewEvidenceDesc] = useState('');
   const [newEvidenceImg, setNewEvidenceImg] = useState('');
 
-  // New Document Form States
-  const [newDocType, setNewDocType] = useState<'BESCHLUSS' | 'URTEIL' | 'PROTOKOLL'>('BESCHLUSS');
+  // New Case Document Form States
+  const [newDocType, setNewDocType] = useState<'BESCHLUSS' | 'URTEIL' | 'PROTOKOLL' | 'STRAFBEFEHL'>('BESCHLUSS');
   const [newDocTitle, setNewDocTitle] = useState('');
   const [newDocContent, setNewDocContent] = useState('');
+
+  // New Internal Document Form States
+  const [newOfficeType, setNewOfficeType] = useState<'DIENSTANWEISUNG' | 'DIENSTORDNUNG' | 'ANTRAG' | 'BESCHWERDE'>('ANTRAG');
+  const [newOfficeTitle, setNewOfficeTitle] = useState('');
+  const [newOfficeContent, setNewOfficeContent] = useState('');
 
   // Toast Notification States
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
@@ -71,23 +81,24 @@ export default function Home() {
   // Data Loading & Auto-Refresh
   useEffect(() => {
     loadData();
-    // Auto-Refresh alle 30 Sekunden für Live-Sync (Echtzeiteffekt wie Google Drive)
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
     try {
-      const [citsRes, casesRes, warrantsRes] = await Promise.all([
+      const [citsRes, casesRes, warrantsRes, docsRes] = await Promise.all([
         fetch('/api/citizens'),
         fetch('/api/cases'),
-        fetch('/api/warrants')
+        fetch('/api/warrants'),
+        fetch('/api/internal-documents')
       ]);
 
-      if (citsRes.ok && casesRes.ok && warrantsRes.ok) {
+      if (citsRes.ok && casesRes.ok && warrantsRes.ok && docsRes.ok) {
         setCitizens(await citsRes.json());
         setCases(await casesRes.json());
         setWarrants(await warrantsRes.json());
+        setInternalDocs(await docsRes.json());
       }
     } catch (err) {
       console.error('Fehler beim Laden der API-Daten:', err);
@@ -427,6 +438,78 @@ export default function Home() {
     }
   };
 
+  // --- OFFICE / INTERNAL DOCUMENTS API ---
+  const handleCreateOfficeDoc = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOfficeTitle.trim() || !newOfficeContent.trim()) {
+      showToast('Titel und Inhalt sind erforderlich', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/internal-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: newOfficeType,
+          title: newOfficeTitle,
+          content: newOfficeContent,
+          creatorName: currentOfficerName,
+          creatorRole: currentRole
+        })
+      });
+
+      if (res.ok) {
+        showToast('Dokument erfolgreich angelegt');
+        setShowOfficeModal(false);
+        setNewOfficeTitle('');
+        setNewOfficeContent('');
+        loadData();
+      }
+    } catch (err) {
+      showToast('Netzwerkfehler', 'error');
+    }
+  };
+
+  const handleSignOfficeDoc = async (docId: string) => {
+    if (currentRole !== 'judge' && currentRole !== 'admin') {
+      showToast('Nur Richter oder Administratoren dürfen Dienststellendokumente genehmigen!', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/internal-documents/${docId}/sign`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signerName: currentOfficerName })
+      });
+
+      if (res.ok) {
+        showToast('Dokument erfolgreich genehmigt & in Kraft gesetzt!');
+        loadData();
+      }
+    } catch (err) {
+      showToast('Netzwerkfehler', 'error');
+    }
+  };
+
+  const handleDeleteOfficeDoc = async (docId: string) => {
+    if (window.confirm('Möchtest du dieses Dokument unwiderruflich aus dem Archiv löschen?')) {
+      try {
+        const res = await fetch(`/api/internal-documents/${docId}`, {
+          method: 'DELETE'
+        });
+
+        if (res.ok) {
+          showToast('Dokument gelöscht', 'info');
+          loadData();
+        }
+      } catch (err) {
+        showToast('Netzwerkfehler', 'error');
+      }
+    }
+  };
+
   // Backups
   const handleExport = async () => {
     try {
@@ -564,8 +647,8 @@ export default function Home() {
   };
 
   // PDF Druck Trigger
-  const triggerPrintDoc = (doc: Document) => {
-    setActiveDocToPrint(doc);
+  const triggerPrintDoc = (title: string, content: string, type: string, signedBy?: string | null, signedAt?: string | null, caseNumber?: string) => {
+    setActiveDocToPrint({ title, content, type, signedBy, signedAt, caseNumber });
     setTimeout(() => {
       window.print();
       setActiveDocToPrint(null);
@@ -598,6 +681,13 @@ export default function Home() {
     return matchCategory && matchQuery;
   });
 
+  const filteredOfficeDocs = internalDocs.filter(d => {
+    const matchType = officeFilter === 'ALL' || d.type === officeFilter;
+    const matchQuery = d.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                       d.content.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchType && matchQuery;
+  });
+
   const lawCategories = Array.from(new Set(laws.map(l => l.category)));
 
   return (
@@ -627,57 +717,45 @@ export default function Home() {
       )}
 
       {/* --- HIDDEN DIN-A4 PDF PRINT AREA --- */}
-      {activeDocToPrint && (() => {
-        const caseObj = cases.find(c => c.id === activeDocToPrint.caseId);
-        return (
-          <div style={{ display: 'block', position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 99999, backgroundColor: '#fff', color: '#000' }} className="only-print">
-            <div className="justiz-document-paper">
-              <div className="justiz-stamp signed">
-                {activeDocToPrint.signedBy ? `Ausgefertigt\nRichterlich` : 'Entwurf'}
-              </div>
-              <div className="justiz-header">
-                <div className="justiz-crest">
-                  <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                  </svg>
-                </div>
-                <div className="justiz-court-name">Landgericht Berlin / Staatsanwaltschaft</div>
-                <div className="justiz-court-sub">Ermittlungs- & Urkundsarchiv</div>
-              </div>
-              <div className="justiz-file-number">Az.: {caseObj?.caseNumber || 'N/A'}</div>
-              <div className="justiz-doc-title">{activeDocToPrint.title}</div>
-              
-              {activeDocToPrint.type === 'URTEIL' && (
-                <div className="justiz-verdict-intro">IM NAMEN DES VOLKES</div>
-              )}
-
-              <div className="justiz-body-text">{activeDocToPrint.content}</div>
-
-              {activeDocToPrint.signedBy && (
-                <div className="justiz-signature-block">
-                  <div className="justiz-signature-line">
-                    <p style={{ fontFamily: 'var(--font-main)', fontStyle: 'italic', marginBottom: '8px' }}>{activeDocToPrint.signedBy}</p>
-                    <p style={{ fontWeight: 'bold' }}>Richter / Richterin</p>
-                    <p style={{ fontSize: '0.75rem', color: '#666' }}>Unterzeichnet am: {new Date(activeDocToPrint.signedAt || '').toLocaleDateString('de-DE')}</p>
-                  </div>
-                </div>
-              )}
+      {activeDocToPrint && (
+        <div style={{ display: 'block', position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 99999, backgroundColor: '#fff', color: '#000' }} className="only-print">
+          <div className="justiz-document-paper">
+            <div className={`justiz-stamp ${activeDocToPrint.signedBy ? 'signed' : ''}`} style={{ fontSize: '0.8rem', top: '15px', right: '15px' }}>
+              {activeDocToPrint.signedBy ? 'Genehmigt / Rechtskräftig' : 'Entwurf'}
             </div>
+            
+            {/* Offizieller deutscher Bundesbriefkopf */}
+            <div style={{ borderBottom: '2px solid #000', paddingBottom: '24px', marginBottom: '30px' }}>
+              <Logo size="lg" />
+            </div>
+
+            <div className="justiz-file-number">Az.: {activeDocToPrint.caseNumber || 'D-12/26'}</div>
+            <div className="justiz-doc-title">{activeDocToPrint.title}</div>
+            
+            {activeDocToPrint.type === 'URTEIL' && (
+              <div className="justiz-verdict-intro">IM NAMEN DES VOLKES</div>
+            )}
+
+            <div className="justiz-body-text">{activeDocToPrint.content}</div>
+
+            {activeDocToPrint.signedBy && (
+              <div className="justiz-signature-block">
+                <div className="justiz-signature-line">
+                  <p style={{ fontFamily: 'var(--font-main)', fontStyle: 'italic', marginBottom: '8px' }}>{activeDocToPrint.signedBy}</p>
+                  <p style={{ fontWeight: 'bold' }}>Zuständige/r Zeichnungsberechtigte/r</p>
+                  <p style={{ fontSize: '0.75rem', color: '#666' }}>Gezeichnet am: {new Date(activeDocToPrint.signedAt || '').toLocaleDateString('de-DE')}</p>
+                </div>
+              </div>
+            )}
           </div>
-        );
-      })()}
+        </div>
+      )}
 
       {/* --- NORMAL APP NAVIGATION & VIEWPORT --- */}
       <aside className="sidebar no-print">
         <div>
-          <div className="sidebar-header">
-            <div className="brand-title">
-              <svg style={{ width: 22, height: 22 }} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-              </svg>
-              Bundes-Justiz
-            </div>
-            <div className="brand-sub">Ermittlungsarchiv v2.0</div>
+          <div className="sidebar-header" style={{ marginBottom: '40px' }}>
+            <Logo size="md" />
           </div>
 
           <nav className="menu-list">
@@ -690,13 +768,16 @@ export default function Home() {
             <li className={`menu-link ${activeTab === 'citizens' ? 'active' : ''}`} onClick={() => { setActiveTab('citizens'); setSelectedCaseId(null); setSelectedCitizenId(null); setSearchQuery(''); }}>
               Personenkartei
             </li>
+            <li className={`menu-link ${activeTab === 'office' ? 'active' : ''}`} onClick={() => { setActiveTab('office'); setSelectedCaseId(null); setSelectedCitizenId(null); setSearchQuery(''); }}>
+              Dienststelle (Drive)
+            </li>
             <li className={`menu-link ${activeTab === 'laws' ? 'active' : ''}`} onClick={() => { setActiveTab('laws'); setSelectedCaseId(null); setSelectedCitizenId(null); setSearchQuery(''); }}>
               Gesetzeskatalog (StGB)
             </li>
           </nav>
         </div>
 
-        {/* Sidebar Footer (Role selector & backups) */}
+        {/* Sidebar Footer */}
         <div>
           <div style={{ marginBottom: '20px' }}>
             <label className="form-label" style={{ fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Dienststellung</label>
@@ -797,7 +878,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Dashboard Layout (Recent Cases & Warrants Ticker) */}
+              {/* Dashboard Layout */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '30px' }}>
                 
                 {/* Recent Cases */}
@@ -963,7 +1044,7 @@ export default function Home() {
                           <option value="ARCHIV">ARCHIVIEREN</option>
                         </select>
                         <button className="btn btn-primary" onClick={() => setShowDocModal(true)}>
-                          Neues Dokument (Beschluss/Urteil)
+                          Neues Dokument
                         </button>
                       </div>
                     </div>
@@ -971,7 +1052,7 @@ export default function Home() {
                     {/* Case Content Layout */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
                       
-                      {/* Left Sidebar: Suspects, Metadata */}
+                      {/* Left Sidebar */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         <div className="panel-card" style={{ marginBottom: 0 }}>
                           <h4 className="panel-card-title">Verfahrensdaten</h4>
@@ -991,7 +1072,6 @@ export default function Home() {
                           </div>
                         </div>
 
-                        {/* Suspects in case */}
                         <div className="panel-card" style={{ marginBottom: 0 }}>
                           <h4 className="panel-card-title">Beschuldigte & Vorwürfe</h4>
                           {c.suspects.length === 0 ? (
@@ -1028,20 +1108,19 @@ export default function Home() {
                         </div>
                       </div>
 
-                      {/* Right Main Panel: Documents, Sachverhalt, Evidence, Notes */}
+                      {/* Right Main Panel */}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                         
-                        {/* Sachverhalt */}
                         <div className="panel-card" style={{ marginBottom: 0 }}>
                           <h4 className="panel-card-title">Sachverhalt / Anzeige</h4>
                           <p style={{ whiteSpace: 'pre-line', fontSize: '0.95rem' }}>{c.description}</p>
                         </div>
 
-                        {/* Dokumente (Google Docs Ersatz) */}
+                        {/* Documents */}
                         <div className="panel-card" style={{ marginBottom: 0 }}>
-                          <h4 className="panel-card-title">Dokumente (Urteile / Beschlüsse)</h4>
+                          <h4 className="panel-card-title">Justiz-Dokumente & Strafbefehle</h4>
                           {c.documents.length === 0 ? (
-                            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>Keine richterlichen Beschlüsse oder Urteilsschriften erfasst.</div>
+                            <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>Keine Anträge, Beschlüsse oder Urkundenschriften erfasst.</div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                               {c.documents.map(doc => (
@@ -1067,7 +1146,7 @@ export default function Home() {
                                           Richterlich Signieren
                                         </button>
                                       )}
-                                      <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => triggerPrintDoc(doc)}>
+                                      <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '0.75rem' }} onClick={() => triggerPrintDoc(doc.title, doc.content, doc.type, doc.signedBy, doc.signedAt, c.caseNumber)}>
                                         🖨️ PDF drucken
                                       </button>
                                     </div>
@@ -1370,6 +1449,103 @@ export default function Home() {
                 );
               })()}
             </>
+          )}
+
+          {/* --- VIEW: DIENSTSTELLE / OFFICE (GOOGLE DRIVE REPLACEMENT) --- */}
+          {activeTab === 'office' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div>
+                  <h1 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 800 }}>Dienststelle & Personalbüro</h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Verwaltung interner Dienstvorschriften, Anträge und Dienstaufsichtsangelegenheiten</p>
+                </div>
+                <button className="btn btn-primary" onClick={() => setShowOfficeModal(true)}>
+                  Neues Dienststellendokument
+                </button>
+              </div>
+
+              {/* Filters & Search */}
+              <div style={{ display: 'flex', gap: '16px', marginBottom: '30px' }}>
+                <div style={{ flexGrow: 1, position: 'relative' }} className="search-container">
+                  <input 
+                    type="text" 
+                    className="form-input" 
+                    style={{ paddingLeft: '40px' }} 
+                    placeholder="Dienstakte / Beschlüsse durchsuchen..." 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}>🔍</span>
+                </div>
+
+                <select 
+                  className="form-select" 
+                  style={{ width: '240px' }} 
+                  value={officeFilter} 
+                  onChange={(e) => setOfficeFilter(e.target.value)}
+                >
+                  <option value="ALL">Alle Dokumentenklassen</option>
+                  <option value="DIENSTANWEISUNG">Dienstanweisungen</option>
+                  <option value="DIENSTORDNUNG">Dienstordnungen</option>
+                  <option value="ANTRAG">Versetzungs- & Personalanträge</option>
+                  <option value="BESCHWERDE">Abt. DA (Beschwerden)</option>
+                </select>
+              </div>
+
+              {/* Documents Display */}
+              {filteredOfficeDocs.length === 0 ? (
+                <div className="panel-card" style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)' }}>
+                  Keine Dokumente in dieser Dienststellen-Kategorie gefunden.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {filteredOfficeDocs.map(doc => (
+                    <div key={doc.id} className="panel-card" style={{ position: 'relative', borderLeft: doc.type === 'DIENSTORDNUNG' || doc.type === 'DIENSTANWEISUNG' ? '4px solid var(--accent-color)' : '4px solid var(--color-warning)' }}>
+                      
+                      {/* Stamp */}
+                      <div className={`justiz-stamp ${doc.signedBy ? 'signed' : ''}`} style={{ fontSize: '0.8rem', top: '20px', right: '20px' }}>
+                        {doc.signedBy ? 'In Kraft / Genehmigt' : 'Wartet auf Zeichnung'}
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                        <span className="badge" style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--color-border)', color: 'var(--text-secondary)' }}>
+                          {doc.type === 'ANTRAG' ? 'Dienstantrag' : doc.type === 'BESCHWERDE' ? 'Abt. DA Beschwerde' : doc.type}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Erstellt am {new Date(doc.createdAt).toLocaleDateString('de-DE')}</span>
+                      </div>
+
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '12px' }}>{doc.title}</h3>
+                      <p style={{ whiteSpace: 'pre-line', fontSize: '0.92rem', color: 'var(--text-primary)', marginBottom: '20px' }}>{doc.content}</p>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '14px' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                          Ersteller: <strong>{doc.creatorName} ({doc.creatorRole.toUpperCase()})</strong>
+                          {doc.signedBy && (
+                            <> | Genehmigt durch: <strong>{doc.signedBy}</strong> am {new Date(doc.signedAt || '').toLocaleDateString('de-DE')}</>
+                          )}
+                        </span>
+
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {!doc.signedBy && (currentRole === 'judge' || currentRole === 'admin') && (
+                            <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => handleSignOfficeDoc(doc.id)}>
+                              Offiziell Genehmigen (Zeichnen)
+                            </button>
+                          )}
+                          <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }} onClick={() => triggerPrintDoc(doc.title, doc.content, doc.type, doc.signedBy, doc.signedAt)}>
+                            🖨️ PDF Drucken
+                          </button>
+                          {(currentRole === 'admin' || currentOfficerName === doc.creatorName) && (
+                            <button className="btn btn-danger" style={{ padding: '6px 12px', fontSize: '0.8rem', backgroundColor: 'transparent', color: 'var(--color-danger)', border: '1px solid var(--color-danger)' }} onClick={() => handleDeleteOfficeDoc(doc.id)}>
+                              Löschen
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* --- VIEW: LAWS --- */}
@@ -1691,7 +1867,7 @@ export default function Home() {
         <div className="modal-overlay">
           <div className="modal-container">
             <div className="modal-header">
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>Richterlichen Beschluss / Urkundenschrift entwerfen</h3>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>Justizdokument / Strafbefehl anfertigen</h3>
               <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => setShowDocModal(false)}>✕</button>
             </div>
             <form onSubmit={handleAddDocument}>
@@ -1701,20 +1877,21 @@ export default function Home() {
                     <label className="form-label">Dokumenten-Typ</label>
                     <select className="form-select" value={newDocType} onChange={(e) => setNewDocType(e.target.value as any)}>
                       <option value="BESCHLUSS">BESCHLUSS</option>
+                      <option value="STRAFBEFEHL">STRAFBEFEHL</option>
                       <option value="URTEIL">URTEILSSCHRIFT</option>
                       <option value="PROTOKOLL">PROTOKOLL</option>
                     </select>
                   </div>
                   <div className="form-group">
                     <label className="form-label">Titel / Betreff</label>
-                    <input type="text" placeholder="z.B. Durchsuchungsbeschluss gem. § 102 StPO" className="form-input" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} required />
+                    <input type="text" placeholder="z.B. Strafbefehl wegen Körperverletzung" className="form-input" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} required />
                   </div>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Dokumententext (formelles Amtsdeutsch)</label>
+                  <label className="form-label">Inhalt (Amtstext)</label>
                   <textarea 
-                    placeholder="z.B.: In dem Ermittlungsverfahren gegen... wird angeordnet... Begründung:..." 
+                    placeholder="Dokumententext..." 
                     className="form-textarea" 
                     value={newDocContent} 
                     onChange={(e) => setNewDocContent(e.target.value)} 
@@ -1725,7 +1902,54 @@ export default function Home() {
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowDocModal(false)}>Abbrechen</button>
-                <button type="submit" className="btn btn-primary">Entwurf speichern</button>
+                <button type="submit" className="btn btn-primary">Speichern</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL: CREATE OFFICE DOCUMENT (DIENSTSTELLE) --- */}
+      {showOfficeModal && (
+        <div className="modal-overlay">
+          <div className="modal-container">
+            <div className="modal-header">
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>Dienststellenakten / Vorschriften erlassen</h3>
+              <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => setShowOfficeModal(false)}>✕</button>
+            </div>
+            <form onSubmit={handleCreateOfficeDoc}>
+              <div className="modal-body">
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                  <div className="form-group">
+                    <label className="form-label">Kategorie</label>
+                    <select className="form-select" value={newOfficeType} onChange={(e) => setNewOfficeType(e.target.value as any)}>
+                      <option value="ANTRAG">Versetzungs- / Personalantrag</option>
+                      <option value="BESCHWERDE">Abt. DA Beschwerde</option>
+                      <option value="DIENSTANWEISUNG">Dienstanweisung</option>
+                      <option value="DIENSTORDNUNG">Dienstordnung</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Titel / Betreff</label>
+                    <input type="text" placeholder="z.B. Versetzung im Außendienst" className="form-input" value={newOfficeTitle} onChange={(e) => setNewOfficeTitle(e.target.value)} required />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Inhalt / Begründung</label>
+                  <textarea 
+                    placeholder="Textinhalt..." 
+                    className="form-textarea" 
+                    value={newOfficeContent} 
+                    onChange={(e) => setNewOfficeContent(e.target.value)} 
+                    style={{ minHeight: '220px' }}
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setShowOfficeModal(false)}>Abbrechen</button>
+                <button type="submit" className="btn btn-primary">Erstellen</button>
               </div>
             </form>
           </div>

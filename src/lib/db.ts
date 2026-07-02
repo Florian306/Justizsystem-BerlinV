@@ -2,9 +2,21 @@ import { PrismaClient } from '@prisma/client';
 import fs from 'fs';
 import path from 'path';
 import type { Citizen, Case, Warrant, Document, CaseNote, Suspect, Evidence } from '../types';
-import { INITIAL_LAWS } from '../data/laws';
 
-// Prisma Client initialisieren (mit Error-Handling für Fallback)
+export interface InternalDocument {
+  id: string;
+  type: 'DIENSTANWEISUNG' | 'DIENSTORDNUNG' | 'ANTRAG' | 'BESCHWERDE';
+  title: string;
+  content: string;
+  creatorName: string;
+  creatorRole: string;
+  signedBy?: string | null;
+  signedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Prisma Client initialisieren
 let prisma: PrismaClient | null = null;
 let useDatabase = false;
 
@@ -140,10 +152,50 @@ const INITIAL_MOCK_WARRANTS: Warrant[] = [
   }
 ];
 
+const INITIAL_MOCK_INTERNAL_DOCS: InternalDocument[] = [
+  {
+    id: 'int_1',
+    type: 'DIENSTORDNUNG',
+    title: 'Allgemeine Dienstordnung für Justizbeamte',
+    content: '§ 1 Allgemeine Amtspflichten\n\n(1) Dienst- und Treuepflicht: Alle Bediensteten des Amts für Justiz stellen sich voll in den Dienst des Staates. Sie haben ihre Aufgaben unparteiisch, sachlich und nach bestem Gewissen zu erfüllen.\n\n(2) Dienstlicher Gehorsam: Den Anweisungen von Dienstvorgesetzten ist Folge zu leisten, sofern diese nicht gegen geltendes Recht verstoßen.\n\n(3) Verschwiegenheitspflicht: Über alle Angelegenheiten, die dem Beamten während seiner Diensttätigkeit bekannt werden und die ihrer Natur nach geheimzuhalten sind, ist strikte Verschwiegenheit zu bewahren.',
+    creatorName: 'Richterin Vance',
+    creatorRole: 'judge',
+    signedBy: 'Richterin Vance',
+    signedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'int_2',
+    type: 'DIENSTANWEISUNG',
+    title: 'Dienstanweisung Nr. 04 - Streifenführung',
+    content: 'Zur Gewährleistung einer lückenlosen Überwachung im Stadtgebiet wird folgende Dienstanweisung erlassen:\n\n1. Streifenwagen sind zu jeder Zeit mit mindestens zwei Beamten zu besetzen.\n2. Bei Kontrollgängen im Hafenbereich ist erhöhte Vorsicht geboten. Schutzkleidung ist zwingend anzulegen.\n3. Festnahmen sind unverzüglich per Funk an die Leitstelle zu melden.',
+    creatorName: 'Staatsanwalt Kraemer',
+    creatorRole: 'justice',
+    signedBy: 'Richterin Vance',
+    signedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    createdAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'int_3',
+    type: 'ANTRAG',
+    title: 'Versetzungsantrag - Officer Davis',
+    content: 'Hiermit beantrage ich, Officer Davis, die Versetzung aus dem aktiven Streifendienst in die Abteilung für Kriminalermittlungen (LKA - Abteilung 2).\n\nBegründung:\nIn den vergangenen zwei Jahren konnte ich im Streifendienst umfassende Erfahrungen sammeln. Mein besonderes Interesse liegt jedoch in der strukturierten Fallanalyse und Auswertung von Asservaten, wie ich es bereits im Fall 12 Js 101/26 unter Beweis stellen konnte.',
+    creatorName: 'Officer Davis',
+    creatorRole: 'police',
+    signedBy: null,
+    signedAt: null,
+    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  }
+];
+
 interface FileDatabase {
   citizens: Citizen[];
   cases: Case[];
   warrants: Warrant[];
+  internalDocuments: InternalDocument[];
 }
 
 const readJsonDb = (): FileDatabase => {
@@ -156,6 +208,7 @@ const readJsonDb = (): FileDatabase => {
       citizens: INITIAL_MOCK_CITIZENS,
       cases: INITIAL_MOCK_CASES,
       warrants: INITIAL_MOCK_WARRANTS,
+      internalDocuments: INITIAL_MOCK_INTERNAL_DOCS
     };
     fs.writeFileSync(JSON_DB_PATH, JSON.stringify(initialDb, null, 2), 'utf-8');
     return initialDb;
@@ -163,10 +216,15 @@ const readJsonDb = (): FileDatabase => {
 
   try {
     const content = fs.readFileSync(JSON_DB_PATH, 'utf-8');
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+    // Rückwärtskompatibilität, falls internalDocuments fehlt
+    if (!parsed.internalDocuments) {
+      parsed.internalDocuments = INITIAL_MOCK_INTERNAL_DOCS;
+    }
+    return parsed;
   } catch (err) {
     console.error('Fehler beim Lesen der JSON-Datenbank:', err);
-    return { citizens: [], cases: [], warrants: [] };
+    return { citizens: [], cases: [], warrants: [], internalDocuments: [] };
   }
 };
 
@@ -496,12 +554,12 @@ export const dbService = {
     }
   },
 
-  addDocument: async (caseId: string, docData: { type: 'BESCHLUSS' | 'URTEIL' | 'PROTOKOLL'; title: string; content: string }): Promise<Document> => {
+  addDocument: async (caseId: string, docData: { type: string; title: string; content: string }): Promise<Document> => {
     const newId = `doc_${Date.now()}`;
     const newDoc: Document = {
       id: newId,
       caseId,
-      type: docData.type,
+      type: docData.type as any,
       title: docData.title,
       content: docData.content,
       createdAt: new Date().toISOString()
@@ -599,7 +657,6 @@ export const dbService = {
       const data = readJsonDb();
       data.warrants.unshift(newWarrant);
       
-      // Fahndungseintrag in Citizen notes vermerken
       const citIndex = data.citizens.findIndex(c => c.id === warrantData.citizenId);
       if (citIndex !== -1) {
         const currentNotes = data.citizens[citIndex].notes || '';
@@ -625,7 +682,6 @@ export const dbService = {
 
       data.warrants[index].status = 'ERLEDIGT';
 
-      // Notiz im Bürgerprofil hinterlegen
       const citizenId = data.warrants[index].citizenId;
       const citIndex = data.citizens.findIndex(c => c.id === citizenId);
       if (citIndex !== -1) {
@@ -638,10 +694,91 @@ export const dbService = {
     }
   },
 
+  // --- INTERNAL DOCUMENTS ---
+  getInternalDocuments: async (): Promise<InternalDocument[]> => {
+    if (useDatabase && prisma) {
+      const dbDocs = await prisma.internalDocument.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+      return dbDocs as any[];
+    } else {
+      const data = readJsonDb();
+      return data.internalDocuments;
+    }
+  },
+
+  createInternalDocument: async (docData: Omit<InternalDocument, 'id' | 'createdAt' | 'updatedAt'>): Promise<InternalDocument> => {
+    const newId = `int_${Date.now()}`;
+    const newDoc: InternalDocument = {
+      ...docData,
+      id: newId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (useDatabase && prisma) {
+      const created = await prisma.internalDocument.create({
+        data: {
+          id: newId,
+          type: docData.type,
+          title: docData.title,
+          content: docData.content,
+          creatorName: docData.creatorName,
+          creatorRole: docData.creatorRole
+        }
+      });
+      return created as any;
+    } else {
+      const data = readJsonDb();
+      data.internalDocuments.unshift(newDoc);
+      writeJsonDb(data);
+      return newDoc;
+    }
+  },
+
+  signInternalDocument: async (docId: string, signerName: string): Promise<InternalDocument> => {
+    if (useDatabase && prisma) {
+      const updated = await prisma.internalDocument.update({
+        where: { id: docId },
+        data: {
+          signedBy: signerName,
+          signedAt: new Date()
+        }
+      });
+      return updated as any;
+    } else {
+      const data = readJsonDb();
+      const index = data.internalDocuments.findIndex(d => d.id === docId);
+      if (index === -1) throw new Error('Dienststellen-Dokument nicht gefunden');
+
+      data.internalDocuments[index].signedBy = signerName;
+      data.internalDocuments[index].signedAt = new Date().toISOString();
+      data.internalDocuments[index].updatedAt = new Date().toISOString();
+      writeJsonDb(data);
+      return data.internalDocuments[index];
+    }
+  },
+
+  deleteInternalDocument: async (docId: string): Promise<boolean> => {
+    if (useDatabase && prisma) {
+      await prisma.internalDocument.delete({
+        where: { id: docId }
+      });
+      return true;
+    } else {
+      const data = readJsonDb();
+      const index = data.internalDocuments.findIndex(d => d.id === docId);
+      if (index === -1) return false;
+
+      data.internalDocuments.splice(index, 1);
+      writeJsonDb(data);
+      return true;
+    }
+  },
+
   // --- SYSTEM WIDE UTILS ---
   backupData: async () => {
     if (useDatabase && prisma) {
-      // Wenn wir im Datenbankmodus sind, lesen wir alles aus und packen es in das Backup-Format
       const cits = await prisma.citizen.findMany();
       const casesRaw = await prisma.case.findMany({
         include: { suspects: true, evidences: true, documents: true, notes: true }
@@ -651,20 +788,22 @@ export const dbService = {
         suspects: c.suspects.map(s => ({ ...s, charges: JSON.parse(s.charges) }))
       }));
       const warrs = await prisma.warrant.findMany();
+      const intDocs = await prisma.internalDocument.findMany();
 
       return {
         citizens: cits,
         cases: casesParsed,
-        warrants: warrs
+        warrants: warrs,
+        internalDocuments: intDocs
       };
     } else {
       return readJsonDb();
     }
   },
 
-  restoreData: async (parsedData: FileDatabase) => {
+  restoreData: async (parsedData: any) => {
     if (useDatabase && prisma) {
-      // Löschen der alten Daten in der PostgreSQL
+      await prisma.internalDocument.deleteMany();
       await prisma.warrant.deleteMany();
       await prisma.caseNote.deleteMany();
       await prisma.document.deleteMany();
@@ -673,7 +812,7 @@ export const dbService = {
       await prisma.case.deleteMany();
       await prisma.citizen.deleteMany();
 
-      // Bürger einfügen
+      // Bürger
       for (const cit of parsedData.citizens) {
         await prisma.citizen.create({
           data: {
@@ -691,7 +830,7 @@ export const dbService = {
         });
       }
 
-      // Fälle einfügen
+      // Fälle
       for (const c of parsedData.cases) {
         await prisma.case.create({
           data: {
@@ -708,7 +847,6 @@ export const dbService = {
           }
         });
 
-        // Verdächtige einfügen
         for (const s of c.suspects) {
           await prisma.suspect.create({
             data: {
@@ -723,7 +861,6 @@ export const dbService = {
           });
         }
 
-        // Beweise einfügen
         for (const ev of c.evidences) {
           await prisma.evidence.create({
             data: {
@@ -737,7 +874,6 @@ export const dbService = {
           });
         }
 
-        // Dokumente einfügen
         for (const doc of c.documents) {
           await prisma.document.create({
             data: {
@@ -753,7 +889,6 @@ export const dbService = {
           });
         }
 
-        // Notizen einfügen
         for (const n of c.notes) {
           await prisma.caseNote.create({
             data: {
@@ -767,7 +902,7 @@ export const dbService = {
         }
       }
 
-      // Haftbefehle einfügen
+      // Haftbefehle
       for (const w of parsedData.warrants) {
         await prisma.warrant.create({
           data: {
@@ -780,6 +915,26 @@ export const dbService = {
           }
         });
       }
+
+      // Interne Dokumente
+      if (parsedData.internalDocuments) {
+        for (const doc of parsedData.internalDocuments) {
+          await prisma.internalDocument.create({
+            data: {
+              id: doc.id,
+              type: doc.type,
+              title: doc.title,
+              content: doc.content,
+              creatorName: doc.creatorName,
+              creatorRole: doc.creatorRole,
+              signedBy: doc.signedBy,
+              signedAt: doc.signedAt ? new Date(doc.signedAt) : null,
+              createdAt: new Date(doc.createdAt),
+              updatedAt: new Date(doc.updatedAt)
+            }
+          });
+        }
+      }
     } else {
       writeJsonDb(parsedData);
     }
@@ -787,6 +942,7 @@ export const dbService = {
 
   resetAllData: async () => {
     if (useDatabase && prisma) {
+      await prisma.internalDocument.deleteMany();
       await prisma.warrant.deleteMany();
       await prisma.caseNote.deleteMany();
       await prisma.document.deleteMany();

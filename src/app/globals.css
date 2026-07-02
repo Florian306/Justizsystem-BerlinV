@@ -243,13 +243,24 @@ body {
   color: #000000;
   border: 1px solid #c0c0c0;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-  padding: 60px 50px;
+  padding: 60px 50px 60px 70px; /* Padding links vergrößert für den Flaggenstreifen */
   font-family: 'Times New Roman', Times, serif;
   min-height: 297mm; /* DIN A4 */
   position: relative;
   overflow: hidden;
   border-radius: var(--border-radius-sm);
 }
+
+.justiz-document-paper::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 100%;
+  background: linear-gradient(to right, #000000 33.3%, #dd0000 33.3%, #dd0000 66.6%, #ffcc00 66.6%);
+}
+
 
 .justiz-header {
   text-align: center;
