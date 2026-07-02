@@ -3,68 +3,69 @@
 /* Deutsches Justizportal - Bundesarchiv - Stylesheet */
 
 :root {
-  /* Helles Thema (Klassischer Behörden-Look / Amtsgerichtspapier) */
-  --bg-primary: #f4f5f7;
+  /* Helles Thema (Behörden-Monochrom / Formell) */
+  --bg-primary: #f2f3f5;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f0f2f5;
-  --bg-hover: #e8eaf0;
+  --bg-tertiary: #e9ecef;
+  --bg-hover: #dee2e6;
   
-  --accent-color: #0f2c59; /* Offizielles Behördenblau */
-  --accent-hover: #071b3d;
-  --accent-light: rgba(15, 44, 89, 0.08);
-  --accent-glow: rgba(15, 44, 89, 0.25);
+  --accent-color: #343a40; /* Dunkelgrau/Schwarz statt Blau */
+  --accent-hover: #212529;
+  --accent-light: #e9ecef;
+  --accent-glow: transparent;
   
-  --text-primary: #1c2434;
-  --text-secondary: #4f5e74;
-  --text-muted: #8492a6;
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #6c757d;
 
-  --color-border: #dcdfe6;
+  --color-border: #ced4da;
   --border-premium: 1px solid var(--color-border);
-  --shadow-premium: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --shadow-premium: none; /* Flaches Design */
 
-  --color-success: #1b5e20; /* Deutsches Grün */
-  --color-success-bg: #e8f5e9;
-  --color-warning: #e65100;
-  --color-warning-bg: #fff3e0;
-  --color-danger: #b71c1c; /* Deutsches Rot */
-  --color-danger-bg: #ffebee;
-  --color-info: #0d47a1;
-  --color-info-bg: #e3f2fd;
+  /* Monochrom für Status/Badges */
+  --color-success: #343a40;
+  --color-success-bg: #e9ecef;
+  --color-warning: #495057;
+  --color-warning-bg: #f8f9fa;
+  --color-danger: #212529;
+  --color-danger-bg: #e9ecef;
+  --color-info: #495057;
+  --color-info-bg: #f8f9fa;
 
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-display: 'Outfit', sans-serif;
+  --font-display: 'Inter', sans-serif; /* Auch Display-Font sachlich */
   
-  --border-radius-sm: 4px;
-  --border-radius-md: 8px;
-  --border-radius-lg: 12px;
+  --border-radius-sm: 0px; /* Kantiges Design */
+  --border-radius-md: 0px;
+  --border-radius-lg: 0px;
 }
 
 /* Dunkles Thema (Umschaltbar über .dark-theme) */
 .dark-theme {
-  --bg-primary: #0a0c10;
-  --bg-secondary: #11141c;
-  --bg-tertiary: #191e2a;
-  --bg-hover: #212838;
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2b2b2b;
+  --bg-hover: #333333;
   
-  --accent-color: #4a90e2;
-  --accent-hover: #357abd;
-  --accent-light: rgba(74, 144, 226, 0.12);
-  --accent-glow: rgba(74, 144, 226, 0.35);
+  --accent-color: #f8f9fa;
+  --accent-hover: #ffffff;
+  --accent-light: #2b2b2b;
+  --accent-glow: transparent;
   
-  --text-primary: #f5f7fa;
-  --text-secondary: #a0aec0;
-  --text-muted: #64748b;
+  --text-primary: #f8f9fa;
+  --text-secondary: #ced4da;
+  --text-muted: #adb5bd;
 
-  --color-border: #2d3748;
+  --color-border: #495057;
   --border-premium: 1px solid var(--color-border);
-  --shadow-premium: 0 8px 30px rgba(0, 0, 0, 0.3);
+  --shadow-premium: none;
   
-  --color-success: #00e676;
-  --color-success-bg: rgba(0, 230, 118, 0.08);
-  --color-warning: #ffb300;
-  --color-warning-bg: rgba(255, 179, 0, 0.08);
-  --color-danger: #ff1744;
-  --color-danger-bg: rgba(255, 23, 68, 0.08);
+  --color-success: #f8f9fa;
+  --color-success-bg: #2b2b2b;
+  --color-warning: #e9ecef;
+  --color-warning-bg: #333333;
+  --color-danger: #ffffff;
+  --color-danger-bg: #2b2b2b;
 }
 
 * {
@@ -629,4 +630,57 @@ body {
   .justiz-crest svg {
     color: #000000 !important;
   }
+}
+
+/* StPO Formular Layout (Papier-Vordruck Optik) */
+.stpo-form-container {
+  display: flex;
+  flex-direction: column;
+  border: 2px solid #000;
+  margin-bottom: 20px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.stpo-form-row {
+  display: flex;
+  border-bottom: 1px solid #000;
+}
+
+.stpo-form-row:last-child {
+  border-bottom: none;
+}
+
+.stpo-form-cell {
+  padding: 8px 12px;
+  border-right: 1px solid #000;
+  flex: 1;
+}
+
+.stpo-form-cell:last-child {
+  border-right: none;
+}
+
+.stpo-form-cell-label {
+  font-size: 0.65rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.stpo-form-cell-value {
+  font-size: 0.95rem;
+  color: #000;
+  white-space: pre-wrap;
+}
+
+.stpo-title-banner {
+  background-color: #f0f0f0;
+  text-align: center;
+  padding: 10px;
+  font-weight: bold;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #000;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }

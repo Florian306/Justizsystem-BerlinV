@@ -68,7 +68,32 @@ export default function Home() {
   // New Case Document Form States
   const [newDocType, setNewDocType] = useState<'BESCHLUSS' | 'URTEIL' | 'PROTOKOLL' | 'STRAFBEFEHL'>('BESCHLUSS');
   const [newDocTitle, setNewDocTitle] = useState('');
-  const [newDocContent, setNewDocContent] = useState('');
+  
+  // STPO Form Fields
+  // BESCHLUSS
+  const [stpoBeschlussTarget, setStpoBeschlussTarget] = useState('');
+  const [stpoBeschlussObject, setStpoBeschlussObject] = useState('');
+  const [stpoBeschlussReason, setStpoBeschlussReason] = useState('');
+  const [stpoBeschlussGoal, setStpoBeschlussGoal] = useState('');
+  // STRAFBEFEHL
+  const [stpoStrafbefehlSuspect, setStpoStrafbefehlSuspect] = useState('');
+  const [stpoStrafbefehlDefender, setStpoStrafbefehlDefender] = useState('');
+  const [stpoStrafbefehlCharge, setStpoStrafbefehlCharge] = useState('');
+  const [stpoStrafbefehlLaws, setStpoStrafbefehlLaws] = useState('');
+  const [stpoStrafbefehlEvidence, setStpoStrafbefehlEvidence] = useState('');
+  const [stpoStrafbefehlFine, setStpoStrafbefehlFine] = useState('');
+  const [stpoStrafbefehlSide, setStpoStrafbefehlSide] = useState('');
+  // URTEIL
+  const [stpoUrteilAccused, setStpoUrteilAccused] = useState('');
+  const [stpoUrteilTenor, setStpoUrteilTenor] = useState('');
+  const [stpoUrteilFact, setStpoUrteilFact] = useState('');
+  const [stpoUrteilEvidence, setStpoUrteilEvidence] = useState('');
+  const [stpoUrteilPenalty, setStpoUrteilPenalty] = useState('');
+  // PROTOKOLL
+  const [stpoProtokollType, setStpoProtokollType] = useState('Zeugenvernehmung');
+  const [stpoProtokollPersons, setStpoProtokollPersons] = useState('');
+  const [stpoProtokollWarning, setStpoProtokollWarning] = useState(false);
+  const [stpoProtokollStatement, setStpoProtokollStatement] = useState('');
 
   // New Internal Document Form States
   const [newOfficeType, setNewOfficeType] = useState<'DIENSTANWEISUNG' | 'DIENSTORDNUNG' | 'ANTRAG' | 'BESCHWERDE'>('ANTRAG');
@@ -257,9 +282,46 @@ export default function Home() {
 
   const handleAddDocument = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCaseId || !newDocTitle.trim() || !newDocContent.trim()) {
-      showToast('Titel und Inhalt erforderlich', 'error');
+    if (!selectedCaseId || !newDocTitle.trim()) {
+      showToast('Titel ist erforderlich', 'error');
       return;
+    }
+
+    let payloadContent = '';
+    
+    // Serialize based on StPO type
+    if (newDocType === 'BESCHLUSS') {
+      payloadContent = JSON.stringify({
+        target: stpoBeschlussTarget,
+        object: stpoBeschlussObject,
+        reason: stpoBeschlussReason,
+        goal: stpoBeschlussGoal
+      });
+    } else if (newDocType === 'STRAFBEFEHL') {
+      payloadContent = JSON.stringify({
+        suspect: stpoStrafbefehlSuspect,
+        defender: stpoStrafbefehlDefender,
+        charge: stpoStrafbefehlCharge,
+        laws: stpoStrafbefehlLaws,
+        evidence: stpoStrafbefehlEvidence,
+        fine: stpoStrafbefehlFine,
+        side: stpoStrafbefehlSide
+      });
+    } else if (newDocType === 'URTEIL') {
+      payloadContent = JSON.stringify({
+        accused: stpoUrteilAccused,
+        tenor: stpoUrteilTenor,
+        fact: stpoUrteilFact,
+        evidence: stpoUrteilEvidence,
+        penalty: stpoUrteilPenalty
+      });
+    } else if (newDocType === 'PROTOKOLL') {
+      payloadContent = JSON.stringify({
+        type: stpoProtokollType,
+        persons: stpoProtokollPersons,
+        warning: stpoProtokollWarning,
+        statement: stpoProtokollStatement
+      });
     }
 
     try {
@@ -269,15 +331,19 @@ export default function Home() {
         body: JSON.stringify({
           type: newDocType,
           title: newDocTitle,
-          content: newDocContent
+          content: payloadContent
         })
       });
 
       if (res.ok) {
-        showToast('Dokument hinzugefügt');
+        showToast('StPO-Formular erfolgreich generiert');
         setShowDocModal(false);
         setNewDocTitle('');
-        setNewDocContent('');
+        // Reset states
+        setStpoBeschlussTarget(''); setStpoBeschlussObject(''); setStpoBeschlussReason(''); setStpoBeschlussGoal('');
+        setStpoStrafbefehlSuspect(''); setStpoStrafbefehlDefender(''); setStpoStrafbefehlCharge(''); setStpoStrafbefehlLaws(''); setStpoStrafbefehlEvidence(''); setStpoStrafbefehlFine(''); setStpoStrafbefehlSide('');
+        setStpoUrteilAccused(''); setStpoUrteilTenor(''); setStpoUrteilFact(''); setStpoUrteilEvidence(''); setStpoUrteilPenalty('');
+        setStpoProtokollPersons(''); setStpoProtokollWarning(false); setStpoProtokollStatement('');
         loadData();
       }
     } catch (err) {
@@ -655,7 +721,27 @@ export default function Home() {
     }, 500);
   };
 
-  // Filtered Lists
+  // Filtered Lists  // Parsing Document JSON
+  const renderDocumentPreview = (content: string) => {
+    try {
+      const parsed = JSON.parse(content);
+      return (
+        <div style={{ padding: '10px', backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--color-border)', fontSize: '0.8rem' }}>
+          <em style={{ color: 'var(--text-muted)' }}>[Strukturiertes StPO-Formular - Siehe PDF-Druck für vollständige Ansicht]</em>
+          <div style={{ marginTop: '8px' }}>
+            {Object.entries(parsed).map(([key, val]) => (
+              <div key={key} style={{ marginBottom: '4px' }}>
+                <strong style={{ textTransform: 'uppercase' }}>{key}:</strong> {String(val).substring(0, 50)}{String(val).length > 50 ? '...' : ''}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    } catch {
+      return <p style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)', marginBottom: '16px' }}>{content}</p>;
+    }
+  };
+
   const filteredCases = cases.filter(c => {
     const term = searchQuery.toLowerCase();
     return (
@@ -730,13 +816,162 @@ export default function Home() {
             </div>
 
             <div className="justiz-file-number">Az.: {activeDocToPrint.caseNumber || 'D-12/26'}</div>
-            <div className="justiz-doc-title">{activeDocToPrint.title}</div>
-            
-            {activeDocToPrint.type === 'URTEIL' && (
-              <div className="justiz-verdict-intro">IM NAMEN DES VOLKES</div>
-            )}
-
-            <div className="justiz-body-text">{activeDocToPrint.content}</div>
+            {/* STPO FORM RENDERING OR LEGACY TEXT */}
+            {(() => {
+              try {
+                const data = JSON.parse(activeDocToPrint.content);
+                
+                if (activeDocToPrint.type === 'BESCHLUSS') {
+                  return (
+                    <div className="stpo-form-container">
+                      <div className="stpo-title-banner">{activeDocToPrint.title}</div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Betroffene Person / Beschuldigte(r)</div>
+                          <div className="stpo-form-cell-value">{data.target}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Gegenstand der Maßnahme</div>
+                          <div className="stpo-form-cell-value">{data.object}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Begründung des Tatverdachts</div>
+                          <div className="stpo-form-cell-value">{data.reason}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Verhältnismäßigkeit & Gesuchte Beweismittel</div>
+                          <div className="stpo-form-cell-value">{data.goal}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else if (activeDocToPrint.type === 'STRAFBEFEHL') {
+                  return (
+                    <div className="stpo-form-container">
+                      <div className="stpo-title-banner">{activeDocToPrint.title}</div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Angeschuldigte(r)</div>
+                          <div className="stpo-form-cell-value">{data.suspect}</div>
+                        </div>
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Verteidiger (falls vorhanden)</div>
+                          <div className="stpo-form-cell-value">{data.defender || '-'}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Konkreter Tatvorwurf</div>
+                          <div className="stpo-form-cell-value">{data.charge}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Angewendete Vorschriften (StGB)</div>
+                          <div className="stpo-form-cell-value">{data.laws}</div>
+                        </div>
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Beweismittel</div>
+                          <div className="stpo-form-cell-value">{data.evidence}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Rechtsfolgen (Tagessätze & Höhe)</div>
+                          <div className="stpo-form-cell-value">{data.fine}</div>
+                        </div>
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Nebenfolgen (Fahrverbot etc.)</div>
+                          <div className="stpo-form-cell-value">{data.side || '-'}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell" style={{ backgroundColor: '#fafafa' }}>
+                          <div className="stpo-form-cell-label">Rechtsbehelfsbelehrung (§ 410 StPO)</div>
+                          <div className="stpo-form-cell-value" style={{ fontSize: '0.8rem' }}>Gegen diesen Strafbefehl kann der Angeklagte innerhalb von zwei Wochen nach Zustellung bei dem erlassenden Gericht schriftlich oder zu Protokoll der Geschäftsstelle Einspruch einlegen.</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else if (activeDocToPrint.type === 'URTEIL') {
+                  return (
+                    <div className="stpo-form-container">
+                      <div className="justiz-verdict-intro">IM NAMEN DES VOLKES</div>
+                      <div className="stpo-title-banner">{activeDocToPrint.title}</div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Angeklagte(r)</div>
+                          <div className="stpo-form-cell-value">{data.accused}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Urteilsformel (Tenor)</div>
+                          <div className="stpo-form-cell-value" style={{ fontWeight: 'bold' }}>{data.tenor}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Sachverhalt</div>
+                          <div className="stpo-form-cell-value">{data.fact}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Beweiswürdigung</div>
+                          <div className="stpo-form-cell-value">{data.evidence}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Strafzumessung</div>
+                          <div className="stpo-form-cell-value">{data.penalty}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                } else if (activeDocToPrint.type === 'PROTOKOLL') {
+                  return (
+                    <div className="stpo-form-container">
+                      <div className="stpo-title-banner">{activeDocToPrint.title} - {data.type}</div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Anwesende / Vernommene Personen</div>
+                          <div className="stpo-form-cell-value">{data.persons}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Belehrung erfolgt</div>
+                          <div className="stpo-form-cell-value">{data.warning ? 'Ja (Gem. StPO)' : 'Nein'}</div>
+                        </div>
+                      </div>
+                      <div className="stpo-form-row">
+                        <div className="stpo-form-cell">
+                          <div className="stpo-form-cell-label">Aussage zur Sache</div>
+                          <div className="stpo-form-cell-value">{data.statement}</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+              } catch (e) {
+                // Legacy Fallback for old simple text docs
+                return (
+                  <>
+                    <div className="justiz-doc-title">{activeDocToPrint.title}</div>
+                    {activeDocToPrint.type === 'URTEIL' && <div className="justiz-verdict-intro">IM NAMEN DES VOLKES</div>}
+                    <div className="justiz-body-text">{activeDocToPrint.content}</div>
+                  </>
+                );
+              }
+            })()}
 
             {activeDocToPrint.signedBy && (
               <div className="justiz-signature-block">
@@ -1133,7 +1368,7 @@ export default function Home() {
 
                                   <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 700 }}>{doc.type}</span>
                                   <h5 style={{ fontSize: '1.1rem', fontWeight: 700, margin: '2px 0 10px' }}>{doc.title}</h5>
-                                  <p style={{ fontSize: '0.9rem', whiteSpace: 'pre-wrap', color: 'var(--text-primary)', marginBottom: '16px' }}>{doc.content}</p>
+                                  {renderDocumentPreview(doc.content)}
 
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
                                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -1872,33 +2107,75 @@ export default function Home() {
             </div>
             <form onSubmit={handleAddDocument}>
               <div className="modal-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', marginBottom: '20px' }}>
                   <div className="form-group">
-                    <label className="form-label">Dokumenten-Typ</label>
+                    <label className="form-label">Formular-Typ (StPO)</label>
                     <select className="form-select" value={newDocType} onChange={(e) => setNewDocType(e.target.value as any)}>
-                      <option value="BESCHLUSS">BESCHLUSS</option>
-                      <option value="STRAFBEFEHL">STRAFBEFEHL</option>
-                      <option value="URTEIL">URTEILSSCHRIFT</option>
-                      <option value="PROTOKOLL">PROTOKOLL</option>
+                      <option value="BESCHLUSS">BESCHLUSS (§ 102 StPO)</option>
+                      <option value="STRAFBEFEHL">STRAFBEFEHL (§ 407 StPO)</option>
+                      <option value="URTEIL">URTEILSSCHRIFT (§ 268 StPO)</option>
+                      <option value="PROTOKOLL">VERNEHMUNGSPROTOKOLL (§ 168 StPO)</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Titel / Betreff</label>
-                    <input type="text" placeholder="z.B. Strafbefehl wegen Körperverletzung" className="form-input" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} required />
+                    <label className="form-label">Akten-Titel / Überschrift</label>
+                    <input type="text" className="form-input" value={newDocTitle} onChange={(e) => setNewDocTitle(e.target.value)} required />
                   </div>
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Inhalt (Amtstext)</label>
-                  <textarea 
-                    placeholder="Dokumententext..." 
-                    className="form-textarea" 
-                    value={newDocContent} 
-                    onChange={(e) => setNewDocContent(e.target.value)} 
-                    style={{ minHeight: '220px' }}
-                    required 
-                  />
+                {/* Form Fields based on Type */}
+                <div style={{ border: '2px solid var(--text-primary)', padding: '20px', backgroundColor: 'var(--bg-tertiary)' }}>
+                  
+                  {newDocType === 'BESCHLUSS' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group"><label className="form-label">Betroffene Person / Beschuldigte(r)</label><input type="text" className="form-input" value={stpoBeschlussTarget} onChange={(e) => setStpoBeschlussTarget(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Gegenstand der Maßnahme</label><input type="text" className="form-input" value={stpoBeschlussObject} onChange={(e) => setStpoBeschlussObject(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Begründung des Tatverdachts</label><textarea className="form-textarea" value={stpoBeschlussReason} onChange={(e) => setStpoBeschlussReason(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Verhältnismäßigkeit & Gesuchte Beweismittel</label><textarea className="form-textarea" value={stpoBeschlussGoal} onChange={(e) => setStpoBeschlussGoal(e.target.value)} required /></div>
+                    </div>
+                  )}
+
+                  {newDocType === 'STRAFBEFEHL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group"><label className="form-label">Angeschuldigte(r)</label><input type="text" className="form-input" value={stpoStrafbefehlSuspect} onChange={(e) => setStpoStrafbefehlSuspect(e.target.value)} required /></div>
+                        <div className="form-group"><label className="form-label">Verteidiger</label><input type="text" className="form-input" value={stpoStrafbefehlDefender} onChange={(e) => setStpoStrafbefehlDefender(e.target.value)} /></div>
+                      </div>
+                      <div className="form-group"><label className="form-label">Konkreter Tatvorwurf</label><textarea className="form-textarea" value={stpoStrafbefehlCharge} onChange={(e) => setStpoStrafbefehlCharge(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Angewendete Vorschriften (StGB)</label><input type="text" className="form-input" value={stpoStrafbefehlLaws} onChange={(e) => setStpoStrafbefehlLaws(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Beweismittel</label><input type="text" className="form-input" value={stpoStrafbefehlEvidence} onChange={(e) => setStpoStrafbefehlEvidence(e.target.value)} required /></div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                        <div className="form-group"><label className="form-label">Geldstrafe (Tagessätze)</label><input type="text" className="form-input" value={stpoStrafbefehlFine} onChange={(e) => setStpoStrafbefehlFine(e.target.value)} required /></div>
+                        <div className="form-group"><label className="form-label">Nebenfolgen</label><input type="text" className="form-input" value={stpoStrafbefehlSide} onChange={(e) => setStpoStrafbefehlSide(e.target.value)} /></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {newDocType === 'URTEIL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group"><label className="form-label">Angeklagte(r)</label><input type="text" className="form-input" value={stpoUrteilAccused} onChange={(e) => setStpoUrteilAccused(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Urteilsformel (Tenor)</label><textarea className="form-textarea" style={{minHeight: '60px', fontWeight: 'bold'}} value={stpoUrteilTenor} onChange={(e) => setStpoUrteilTenor(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Sachverhalt</label><textarea className="form-textarea" value={stpoUrteilFact} onChange={(e) => setStpoUrteilFact(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Beweiswürdigung</label><textarea className="form-textarea" value={stpoUrteilEvidence} onChange={(e) => setStpoUrteilEvidence(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Strafzumessung</label><textarea className="form-textarea" value={stpoUrteilPenalty} onChange={(e) => setStpoUrteilPenalty(e.target.value)} required /></div>
+                    </div>
+                  )}
+
+                  {newDocType === 'PROTOKOLL' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group"><label className="form-label">Art des Protokolls</label><input type="text" className="form-input" value={stpoProtokollType} onChange={(e) => setStpoProtokollType(e.target.value)} required /></div>
+                      <div className="form-group"><label className="form-label">Vernommene Person / Anwesende</label><input type="text" className="form-input" value={stpoProtokollPersons} onChange={(e) => setStpoProtokollPersons(e.target.value)} required /></div>
+                      <div className="form-group">
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input type="checkbox" checked={stpoProtokollWarning} onChange={(e) => setStpoProtokollWarning(e.target.checked)} />
+                          <span>Belehrung nach StPO erfolgt (Schweigerecht / Zeugnisverweigerung)</span>
+                        </label>
+                      </div>
+                      <div className="form-group"><label className="form-label">Wortlaut der Aussage</label><textarea className="form-textarea" style={{minHeight: '120px'}} value={stpoProtokollStatement} onChange={(e) => setStpoProtokollStatement(e.target.value)} required /></div>
+                    </div>
+                  )}
                 </div>
+
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => setShowDocModal(false)}>Abbrechen</button>
