@@ -1,173 +1,181 @@
 import type { Law } from '../types';
 
 export const INITIAL_LAWS: Law[] = [
-  // Gewaltverbrechen
+  // Gewaltstraftaten
   {
-    id: 'stgb_101',
-    title: 'Körperverletzung',
-    category: 'Gewaltverbrechen',
+    id: 'stgb_223',
+    title: '§ 223 StGB - Körperverletzung',
+    category: 'Gewaltstraftaten',
     fine: 2500,
     jail: 15,
-    description: 'Körperliche Misshandlung oder Gesundheitsschädigung einer anderen Person.'
+    description: 'Wer eine andere Person körperlich misshandelt oder an der Gesundheit schädigt.'
   },
   {
-    id: 'stgb_102',
-    title: 'Schwere Körperverletzung',
-    category: 'Gewaltverbrechen',
+    id: 'stgb_224',
+    title: '§ 224 StGB - Gefährliche Körperverletzung',
+    category: 'Gewaltstraftaten',
     fine: 7500,
     jail: 30,
-    description: 'Körperverletzung mit bleibenden Schäden oder unter Verwendung gefährlicher Werkzeuge.'
+    description: 'Körperverletzung mittels einer Waffe, eines gefährlichen Werkzeugs oder gemeinschaftlich.'
   },
   {
-    id: 'stgb_103',
-    title: 'Totschlag',
-    category: 'Gewaltverbrechen',
-    fine: 25000,
+    id: 'stgb_239',
+    title: '§ 239 StGB - Freiheitsberaubung',
+    category: 'Gewaltstraftaten',
+    fine: 5000,
+    jail: 25,
+    description: 'Wer einen Menschen einsperrt oder auf andere Weise der Freiheit beraubt.'
+  },
+  {
+    id: 'stgb_240',
+    title: '§ 240 StGB - Nötigung',
+    category: 'Gewaltstraftaten',
+    fine: 2000,
+    jail: 10,
+    description: 'Wer einen Menschen rechtswidrig mit Gewalt oder durch Drohung zu einer Handlung nötigt.'
+  },
+  {
+    id: 'stgb_212',
+    title: '§ 212 StGB - Totschlag',
+    category: 'Gewaltstraftaten',
+    fine: 30000,
     jail: 90,
-    description: 'Vorsätzliche Tötung eines Menschen ohne Mördermerkmale.'
+    description: 'Wer einen Menschen vorsätzlich tötet, ohne Mörder zu sein.'
   },
   {
-    id: 'stgb_104',
-    title: 'Mord',
-    category: 'Gewaltverbrechen',
+    id: 'stgb_211',
+    title: '§ 211 StGB - Mord',
+    category: 'Gewaltstraftaten',
     fine: 50000,
     jail: 120,
-    description: 'Tötung eines Menschen aus Heimtücke, Habgier oder anderen niederen Beweggründen.'
-  },
-  {
-    id: 'stgb_105',
-    title: 'Geiselnahme',
-    category: 'Gewaltverbrechen',
-    fine: 15000,
-    jail: 60,
-    description: 'Entführung oder Gefangennahme einer Person zur Erpressung.'
+    description: 'Vorsätzliche Tötung aus Mordlust, zur Befriedigung des Geschlechtstriebs, aus Habgier oder Heimtücke.'
   },
 
-  // Eigentumsdelikte
+  // Eigentumsstraftaten
   {
-    id: 'stgb_201',
-    title: 'Diebstahl',
-    category: 'Eigentumsdelikte',
+    id: 'stgb_242',
+    title: '§ 242 StGB - Diebstahl',
+    category: 'Eigentums- & Vermögensdelikte',
     fine: 1500,
     jail: 10,
     description: 'Wegnahme einer fremden beweglichen Sache in rechtswidriger Zueignungsabsicht.'
   },
   {
-    id: 'stgb_202',
-    title: 'Schwerer Diebstahl (Einbruch)',
-    category: 'Eigentumsdelikte',
+    id: 'stgb_243',
+    title: '§ 243 StGB - Besonders schwerer Fall des Diebstahls',
+    category: 'Eigentums- & Vermögensdelikte',
     fine: 4500,
     jail: 20,
-    description: 'Diebstahl unter Überwindung von Hindernissen (Einbrechen, Einsteigen).'
+    description: 'Einbruchsdiebstahl, Diebstahl von Waffen oder aus umschlossenen Räumen.'
   },
   {
-    id: 'stgb_203',
-    title: 'Raub',
-    category: 'Eigentumsdelikte',
-    fine: 6000,
-    jail: 25,
-    description: 'Diebstahl unter Anwendung oder Androhung von Gewalt gegen Personen.'
+    id: 'stgb_249',
+    title: '§ 249 StGB - Raub',
+    category: 'Eigentums- & Vermögensdelikte',
+    fine: 8000,
+    jail: 35,
+    description: 'Diebstahl unter Anwendung oder Androhung von gegenwärtiger Gefahr für Leib oder Leben.'
   },
   {
-    id: 'stgb_204',
-    title: 'Fahrzeugdiebstahl',
-    category: 'Eigentumsdelikte',
-    fine: 2000,
+    id: 'stgb_263',
+    title: '§ 263 StGB - Betrug',
+    category: 'Eigentums- & Vermögensdelikte',
+    fine: 3000,
     jail: 15,
-    description: 'Unbefugte Inbetriebnahme oder Entwendung eines Kraftfahrzeugs.'
+    description: 'Verschaffung eines rechtswidrigen Vermögensvorteils durch Täuschung.'
+  },
+  {
+    id: 'stgb_303',
+    title: '§ 303 StGB - Sachbeschädigung',
+    category: 'Eigentums- & Vermögensdelikte',
+    fine: 1000,
+    jail: 5,
+    description: 'Wer rechtswidrig eine fremde Sache beschädigt oder zerstört.'
   },
 
   // Verkehrsdelikte
   {
-    id: 'stgb_301',
-    title: 'Geschwindigkeitsüberschreitung',
+    id: 'stgb_315c',
+    title: '§ 315c StGB - Gefährdung des Straßenverkehrs',
     category: 'Verkehrsdelikte',
-    fine: 500,
-    jail: 0,
-    description: 'Führen eines Fahrzeugs über der zulässigen Höchstgeschwindigkeit.'
-  },
-  {
-    id: 'stgb_302',
-    title: 'Fahren ohne Führerschein',
-    category: 'Verkehrsdelikte',
-    fine: 1500,
-    jail: 0,
-    description: 'Führen eines Kraftfahrzeugs ohne gültige Fahrerlaubnis.'
-  },
-  {
-    id: 'stgb_303',
-    title: 'Fahrerflucht',
-    category: 'Verkehrsdelikte',
-    fine: 3500,
+    fine: 3000,
     jail: 15,
-    description: 'Unerlaubtes Entfernen vom Unfallort als Unfallbeteiligter.'
+    description: 'Grobe und rücksichtslose Missachtung der Verkehrsregeln, Gefährdung von Leib und Leben.'
   },
   {
-    id: 'stgb_304',
-    title: 'Fahren unter Alkoholeinfluss',
+    id: 'stgb_316',
+    title: '§ 316 StGB - Trunkenheit im Verkehr',
     category: 'Verkehrsdelikte',
     fine: 2000,
     jail: 10,
-    description: 'Führen eines Fahrzeugs bei Fahruntüchtigkeit durch Alkohol oder Drogen.'
+    description: 'Führen eines Fahrzeugs im Zustand der Fahruntüchtigkeit durch Alkohol oder Rauschmittel.'
   },
-
-  // Drogendelikte
   {
-    id: 'stgb_401',
-    title: 'Besitz von Betäubungsmitteln (Eigenbedarf)',
-    category: 'Drogendelikte',
-    fine: 1000,
+    id: 'stgb_142',
+    title: '§ 142 StGB - Unerlaubtes Entfernen vom Unfallort',
+    category: 'Verkehrsdelikte',
+    fine: 2500,
+    jail: 15,
+    description: 'Sich als Unfallbeteiligter vom Unfallort entfernen, ohne Feststellungen zu ermöglichen.'
+  },
+  {
+    id: 'stvo_21',
+    title: '§ 21 VG - Fahren ohne Fahrerlaubnis',
+    category: 'Verkehrsdelikte',
+    fine: 1500,
     jail: 0,
-    description: 'Besitz illegaler Drogen in geringer Menge zum Eigenkonsum.'
-  },
-  {
-    id: 'stgb_402',
-    title: 'Drogenbesitz in Großmenge',
-    category: 'Drogendelikte',
-    fine: 5000,
-    jail: 20,
-    description: 'Besitz illegaler Drogen jenseits der Eigenbedarfsmenge.'
-  },
-  {
-    id: 'stgb_403',
-    title: 'Drogenhandel',
-    category: 'Drogendelikte',
-    fine: 12000,
-    jail: 45,
-    description: 'Gewerbsmäßiger Verkauf oder Schmuggel illegaler Betäubungsmittel.'
+    description: 'Führen eines Kraftfahrzeugs ohne die erforderliche Fahrerlaubnis.'
   },
 
-  // Waffen- & sonstige Delikte
+  // Betäubungsmittelgesetz (BtMG)
   {
-    id: 'stgb_501',
-    title: 'Unerlaubter Waffenbesitz',
-    category: 'Waffendelikte',
-    fine: 8000,
-    jail: 30,
-    description: 'Besitz einer Schusswaffe ohne gültigen Waffenschein.'
+    id: 'btmg_29_besitz',
+    title: '§ 29 BtMG - Illegaler Drogenbesitz',
+    category: 'Betäubungsmitteldelikte',
+    fine: 2000,
+    jail: 10,
+    description: 'Unerlaubter Besitz von Betäubungsmitteln.'
   },
   {
-    id: 'stgb_502',
-    title: 'Waffengebrauch in der Öffentlichkeit',
+    id: 'btmg_29_handel',
+    title: '§ 29 BtMG - Unerlaubtes Handeltreiben',
+    category: 'Betäubungsmitteldelikte',
+    fine: 15000,
+    jail: 50,
+    description: 'Anbau, Herstellung, Handeltreiben, Ein- oder Ausfuhr von illegalen Betäubungsmitteln.'
+  },
+
+  // Waffenrecht & Sonstige Straftaten
+  {
+    id: 'waffg_52',
+    title: '§ 52 WaffG - Unerlaubter Waffenbesitz',
     category: 'Waffendelikte',
-    fine: 12000,
+    fine: 10000,
     jail: 40,
-    description: 'Abfeuern einer Waffe in der Öffentlichkeit ohne Notwehr-Grund.'
+    description: 'Besitz oder Führen verbotener Waffen oder von Schusswaffen ohne Erlaubnis.'
   },
   {
-    id: 'stgb_503',
-    title: 'Beamtenbeleidigung',
-    category: 'Sonstige Delikte',
-    fine: 1000,
-    jail: 5,
-    description: 'Beleidigung oder Ehrverletzung eines Beamten im Dienst.'
-  },
-  {
-    id: 'stgb_504',
-    title: 'Widerstand gegen die Staatsgewalt',
+    id: 'stgb_113',
+    title: '§ 113 StGB - Widerstand gegen Vollstreckungsbeamte',
     category: 'Sonstige Delikte',
     fine: 3000,
     jail: 15,
-    description: 'Aktiver körperlicher Widerstand gegen rechtmäßige Diensthandlungen von Beamten.'
+    description: 'Wer Beamten, die zur Vollstreckung von Gesetzen berufen sind, Widerstand leistet.'
+  },
+  {
+    id: 'stgb_115',
+    title: '§ 115 StGB - Beamtenbeleidigung & Angriff',
+    category: 'Sonstige Delikte',
+    fine: 1500,
+    jail: 5,
+    description: 'Tätlicher Angriff oder ehrverletzende Beleidigung eines Amtsträgers während der Dienstausübung.'
+  },
+  {
+    id: 'stgb_185',
+    title: '§ 185 StGB - Beleidigung',
+    category: 'Sonstige Delikte',
+    fine: 800,
+    jail: 0,
+    description: 'Kundgebung der Missachtung oder Nichtachtung einer anderen Person.'
   }
 ];

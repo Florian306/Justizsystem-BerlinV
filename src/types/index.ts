@@ -3,7 +3,7 @@ export interface Law {
   title: string;
   category: string;
   fine: number;
-  jail: number; // in Monaten oder Minuten
+  jail: number; // in Minuten
   description: string;
 }
 
@@ -13,26 +13,48 @@ export interface Citizen {
   lastName: string;
   birthDate: string;
   gender: string;
-  phoneNumber?: string;
-  driverLicense: 'active' | 'suspended' | 'none';
-  weaponLicense: 'active' | 'suspended' | 'none';
-  notes: string;
+  phoneNumber?: string | null;
+  driverLicense: 'AKTIV' | 'GESPERRT' | 'KEINE';
+  weaponLicense: 'AKTIV' | 'ENTZOGEN' | 'KEINER';
+  notes?: string | null;
   createdAt: string;
 }
 
 export interface Suspect {
+  id: string;
+  caseId: string;
   citizenId: string;
   charges: string[]; // Array von Law IDs
   fine: number;
-  jailTime: number;
+  jailTime: number; // in Minuten
   pleadedGuilty: boolean;
 }
 
 export interface Evidence {
   id: string;
+  caseId: string;
   title: string;
   description: string;
-  imageUrl?: string;
+  imageUrl?: string | null;
+  createdAt: string;
+}
+
+export interface Document {
+  id: string;
+  caseId: string;
+  type: 'BESCHLUSS' | 'URTEIL' | 'PROTOKOLL';
+  title: string;
+  content: string; // Volltext
+  signedBy?: string | null;
+  signedAt?: string | null;
+  createdAt: string;
+}
+
+export interface CaseNote {
+  id: string;
+  caseId: string;
+  content: string;
+  authorName: string;
   createdAt: string;
 }
 
@@ -41,22 +63,23 @@ export interface Warrant {
   citizenId: string;
   reason: string;
   creatorName: string;
-  status: 'active' | 'archived';
+  status: 'AKTIV' | 'ERLEDIGT';
   createdAt: string;
 }
 
 export interface Case {
   id: string;
-  caseNumber: string; // E.g., "JA-2026-0001"
+  caseNumber: string; // z.B. "12 Js 432/26"
   title: string;
   description: string;
-  status: 'open' | 'closed' | 'court_pending';
-  urgency: 'low' | 'medium' | 'high' | 'critical';
+  status: 'ERMITTLUNG' | 'ANKLAGE' | 'ARCHIV';
+  urgency: 'NIEDRIG' | 'MITTEL' | 'HOCH' | 'KRITISCH';
   creatorName: string;
   creatorRole: 'police' | 'justice' | 'judge' | 'admin';
   suspects: Suspect[];
   evidences: Evidence[];
-  notes: string[]; // Ermittlungsberichte / Notizen
+  documents: Document[];
+  notes: CaseNote[];
   createdAt: string;
   updatedAt: string;
 }
