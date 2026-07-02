@@ -1014,16 +1014,6 @@ export default function Home() {
 
         {/* Sidebar Footer */}
         <div>
-          <div style={{ marginBottom: '20px' }}>
-            <label className="form-label" style={{ fontSize: '0.7rem', textTransform: 'uppercase', marginBottom: '6px', display: 'block' }}>Dienststellung</label>
-            <select className="form-select" value={currentRole} onChange={(e) => handleRoleChange(e.target.value as any)}>
-              <option value="police">Kriminalpolizei (LKA)</option>
-              <option value="justice">Staatsanwaltschaft (StA)</option>
-              <option value="judge">Richterrat (Gericht)</option>
-              <option value="admin">System-Administrator</option>
-            </select>
-          </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '20px' }}>
             <button className="btn btn-secondary" style={{ fontSize: '0.78rem', padding: '8px' }} onClick={handleExport}>
               Archiv Exportieren (JSON)
